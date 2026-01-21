@@ -9,9 +9,9 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate")
 
 add_requires("opencv", { system = true })
-add_requires("nlohmann_json 3.12.0", "simdutf 6.2", "toml11 4.4.0", "quill 10.1.0", "fmt 11.2.0", "libnpy 1.0.1",
+add_requires("nlohmann_json 3.12.0", "simdutf 8.0.0", "toml11 4.4.0", "quill 11.0.2", "fmt 12.1.0", "libnpy 1.0.1",
     "argparse 3.2")
-add_requires("concurrentqueue 1.0.4", "libhv 1.3.3", "cppzmq 4.10.0")
+add_requires("concurrentqueue 1.0.4", "libhv 1.3.3", "cppzmq 4.11.0")
 add_requires("asio2 2.9.0")
 add_packages("nlohmann_json", "simdutf", "toml11", "quill", "fmt", "libnpy")
 add_packages("asio2")
