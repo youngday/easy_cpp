@@ -44,12 +44,21 @@ target("config_toml")
 set_kind("binary")
 add_files("src/config/config_toml.cpp")
 
-target("serial")
+target("async_serial_hex")
 set_kind("binary")
-add_linkdirs("lib")
-add_links("CppLinuxSerial")
-add_files("src/serial/FlowControl.cpp")
-add_includedirs("src/CppLinuxSerial")
+-- add_linkdirs("lib")
+-- add_links("CppLinuxSerial")
+add_files("src/async_serial/src/main.cpp" )
+add_files("src/async_serial/src/SerialPort.cpp" )
+add_includedirs("src/async_serial/include")
+
+target("async_serial_asiic")
+set_kind("binary")
+-- add_linkdirs("lib")
+-- add_links("CppLinuxSerial")
+add_files("src/async_serial/src/main_asiic.cpp" )
+add_files("src/async_serial/src/SerialPort.cpp" )
+add_includedirs("src/async_serial/include")
 
 -- asio2
 -- sudo chmod 666 /dev/ttyS0
