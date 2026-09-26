@@ -7,22 +7,12 @@ add_rules("mode.debug", "mode.release")
 -- https://xmake.io/mirror/zh-cn/plugin/more_plugins.html
 add_rules("plugin.compile_commands.autoupdate")
 
--- ============================================================
--- 第三方依赖
---   add_requires : 下载/安装包
---   add_packages : 链接到 target；写在根作用域会对所有 target 生效，
---                  所以常规库统一在这里声明，target 内不再重复添加。
--- ============================================================
-
--- 常规库：每个元素是 "包名 版本"，requires 与 packages 由同一份清单生成，
--- 避免两处版本/包名漂移。
 local libs = {
     "nlohmann_json 3.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "toml++ 3.4.0",
     "quill 12.0.0", "fmt 12.2.0",
     "cppzmq 4.11.0", "argparse 3.2", "atomic_queue 1.9.2",
     "concurrentqueue 1.0.5", "libhv 1.3.4",
     "xsimd 14.3.0", "xtensor 0.27.1", "xtensor-blas 0.23.0", "xtl 0.8.2",
-    "drogon 1.9.13",
     "sqlite_orm 1.9.1", "sqlite3 3.53.0+400",
 }
 for _, spec in ipairs(libs) do
