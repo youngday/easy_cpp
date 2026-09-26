@@ -4,14 +4,14 @@
 #include <xtensor-blas/xblas.hpp>
 #include <xtensor-blas/xlapack.hpp>
 #include <xtensor-blas/xlinalg.hpp>
-#include <xtensor/xarray.hpp>
-#include <xtensor/xbuilder.hpp>
-#include <xtensor/xcsv.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xnpy.hpp>
-#include <xtensor/xpad.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/generators/xbuilder.hpp>
+#include <xtensor/io/xcsv.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/io/xnpy.hpp>
+#include <xtensor/misc/xpad.hpp>
+#include <xtensor/views/xview.hpp>
 
 using std::cout, std::endl, std::string, std::this_thread::sleep_for;
 using namespace std::chrono_literals;

@@ -118,7 +118,7 @@ xmake g --pkg_searchdirs=/xxx
 ```
 
 
-## 用 clang-14（最接近原意）
+## 用 gcc11（最接近原意）
 
 ```sh
 sudo apt install libstdc++-12-dev         # 或把这些换成为方案 B
@@ -135,4 +135,10 @@ xmake -y
 
 ```sh
 bear -- xmake  -b implot_csv
+```
+
+## unset proxy
+
+```sh
+  env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy -u ALL_PROXY -u all_proxy xmake -y
 ```
