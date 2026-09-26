@@ -55,7 +55,6 @@ video_fname = std::string("0");
 |structor data file|npy|csv |share numpy files|
 |queue|concurrentqueue|atomic_queue|lock-free concurrent queue|
 |async_serial port|cpplinuxserial,with readerwriterqueue |asio2|async serial|
-|asio2_serial port| asio2||async serial|
 |tcp/http|libhv|coost|tcp http with coroutine|
 |websocket|libhv|(uwebsocket not in xmake)|websocket|
 |zero mq|cppzmq||message queue between other language|
