@@ -7,3 +7,4 @@ CMakeCache.txt
 .cache/
 compile_commands.json
 versions.txt
+output.json

@@ -8,7 +8,7 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate")
 
 local libs = {
-    "nlohmann_json 3.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "tomlc17 2026.08.21",
+    "yyjson 0.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "tomlc17 2026.08.21",
     "quill 12.0.0", "fmt 12.2.0",
     "cppzmq 4.11.0", "argparse 3.2", "atomic_queue 1.9.2",
     "concurrentqueue 1.0.5", "libhv 1.3.4",
