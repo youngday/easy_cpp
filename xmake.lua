@@ -1,4 +1,4 @@
-set_xmakever("2.9.0")
+set_xmakever("3.0.0")
 set_project("xmake-example")
 set_languages("c++20")
 -- set_policy("build.warning", true)
@@ -45,33 +45,48 @@ add_files("src/utils/*.cpp")
 -- ============================================================
 
 target("test")
-    set_kind("binary")
-    add_files("src/async/test.cpp")
+set_kind("binary")
+add_files("src/async/test.cpp")
 
 target("sqlite_orm")
-    set_kind("binary")
-    add_files("src/sqlite_orm/main.cpp")
+set_kind("binary")
+add_files("src/sqlite_orm/main.cpp")
 
 -- config log
 target("config_toml")
-    set_kind("binary")
-    add_files("src/config/config_toml.cpp")
+set_kind("binary")
+add_files("src/config/config_toml.cpp")
 
-target("serial")
-    set_kind("binary")
-    add_linkdirs("lib")
-    add_links("CppLinuxSerial")
-    add_files("src/serial/FlowControl.cpp")
-    add_includedirs("src/CppLinuxSerial")
+target("async_serial_hex")
+set_kind("binary")
+-- add_linkdirs("lib")
+-- add_links("CppLinuxSerial")
+add_files("src/async_serial/src/main.cpp" )
+add_files("src/async_serial/src/SerialPort.cpp" )
+add_includedirs("src/async_serial/include")
+
+target("async_serial_asiic")
+set_kind("binary")
+-- add_linkdirs("lib")
+-- add_links("CppLinuxSerial")
+add_files("src/async_serial/src/main_asiic.cpp" )
+add_files("src/async_serial/src/SerialPort.cpp" )
+add_includedirs("src/async_serial/include")
+
+-- asio2
+-- sudo chmod 666 /dev/ttyS0
+target("asio2_serial")
+set_kind("binary")
+add_files("src/asio2/serial.cpp")
 
 -- noblock mpmc_block mpmc_bulk
 target("queue_nonblock")
-    set_kind("binary")
-    add_files("src/concurrentqueue/nonblock.cpp")
+set_kind("binary")
+add_files("src/concurrentqueue/nonblock.cpp")
 
 target("queue_block")
-    set_kind("binary")
-    add_files("src/concurrentqueue/block.cpp")
+set_kind("binary")
+add_files("src/concurrentqueue/block.cpp")
 
 target("atomic_queue")
     set_kind("binary")
@@ -127,8 +142,8 @@ target("hv_websocket_client")
     add_files("src/hv_websocket/websocket_client_test.cpp")
 
 target("hv_websocket_server")
-    set_kind("binary")
-    add_files("src/hv_websocket/websocket_server_test.cpp")
+set_kind("binary")
+add_files("src/hv_websocket/websocket_server_test.cpp")
 
 -- xtensor / xtensor-blas 已在根作用域 add_packages，这里无需重复
 target("xtensor")
@@ -198,5 +213,5 @@ target("implot3d_csv")
     add_implot("src/plot/implot3d/*.cpp", "src/plot/implot3d")
 
 target("base64")
-    set_kind("binary")
-    add_files("src/base64/base64.cpp")
+set_kind("binary")
+add_files("src/base64/base64.cpp")

@@ -4,12 +4,16 @@
 #include <iostream>
 #include <algorithm>  //  std::copy
 #include <cmath>
+// #include "atomic_queue/atomic_queue.h"
+// #include "blockingconcurrentqueue.h"
+// #include "concurrentqueue.h"
 
 #include "mytime.hpp"
 #include "nlohmann/json.hpp"
 #include "simdutf.h"
-#include <yaml-cpp/yaml.h>
-#include <toml++/toml.h>
+#include "toml.hpp"
+#include "npy.hpp"
+
 #define FMT_HEADER_ONLY//NOTE: need add
 #include <fmt/format.h>
 #include <fmt/core.h>

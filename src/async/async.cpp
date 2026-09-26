@@ -20,22 +20,22 @@ int main() {
   LOG_INFO(logger, "⏰Starting at {}!", time_str);
 
   auto start = steady_clock::now();
-  std::ifstream inputFile("test.rknn");
-  if (!inputFile.is_open()) {
-    LOG_ERROR(logger, "Error opening the file!");
-    return 1; // Exit the program with an error code
-  }
-  std::string fileContent;
-  std::string line;
-  while (std::getline(inputFile, line)) {
-    fileContent += line + "\n"; // Append each line to the string
-  }
-  inputFile.close();
+  // std::ifstream inputFile("test.rknn");
+  // if (!inputFile.is_open()) {
+  //   LOG_ERROR(logger, "Error opening the file!");
+  //   return 1; // Exit the program with an error code
+  // }
+  // std::string fileContent;
+  // std::string line;
+  // while (std::getline(inputFile, line)) {
+  //   fileContent += line + "\n"; // Append each line to the string
+  // }
+  // inputFile.close();
   auto dur = (steady_clock::now() - start) / 1ms;
   LOG_INFO(logger, "dur time:{} ms!", dur);
-  float fileSizeMb = fileContent.size() / 1000000.0;
-  LOG_INFO(logger, "File content size:{0} Mbytes,read speed:{1} M/s.",
-           fileSizeMb, fileSizeMb / dur * 1000);
+  // float fileSizeMb = fileContent.size() / 1000000.0;
+  // LOG_INFO(logger, "File content size:{0} Mbytes,read speed:{1} M/s.",
+  //          fileSizeMb, fileSizeMb / dur * 1000);
 
 
   while (true) {
