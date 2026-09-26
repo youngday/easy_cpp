@@ -14,7 +14,7 @@ class ConsoleSinkWithFormatter : public quill::ConsoleSink
 public:
   ConsoleSinkWithFormatter(quill::PatternFormatterOptions const& pattern_formater_options,
                            bool enable_colours = true, std::string const& stream = "stdout")
-    : quill::ConsoleSink(enable_colours, stream), _formatter(pattern_formater_options)
+    : quill::ConsoleSink(make_config(enable_colours, stream)), _formatter(pattern_formater_options)
   {
   }
 
@@ -25,9 +25,10 @@ public:
                  std::vector<std::pair<std::string, std::string>> const* named_args,
                  std::string_view log_message, std::string_view) override
   {
+    // quill v12: PatternFormatter::format 末尾新增了 mdc 参数
     std::string_view const formatted_log_statement =
       _formatter.format(log_timestamp, thread_id, thread_name, process_id, logger_name, log_level_description,
-                        log_level_short_code, *log_metadata, named_args, log_message);
+                        log_level_short_code, *log_metadata, named_args, log_message, std::string_view{});
 
     quill::ConsoleSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                                   logger_name, log_level, log_level_description, log_level_short_code,
@@ -35,5 +36,15 @@ public:
   }
 
 private:
+  // quill v12: ConsoleSink 改为通过 ConsoleSinkConfig 配置颜色模式与输出流
+  static quill::ConsoleSinkConfig make_config(bool enable_colours, std::string const& stream)
+  {
+    quill::ConsoleSinkConfig config;
+    config.set_stream(stream);
+    config.set_colour_mode(enable_colours ? quill::ConsoleSinkConfig::ColourMode::Always
+                                          : quill::ConsoleSinkConfig::ColourMode::Never);
+    return config;
+  }
+
   quill::PatternFormatter _formatter;
 };
