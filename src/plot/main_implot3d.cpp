@@ -6,7 +6,7 @@
 //--------------------------------------------------
 #include "main.hpp"
 
-#include "glad/glad.h"
+#include <glad/gl.h>
 #include "GLFW/glfw3.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -49,7 +49,7 @@ int main(int argc, char const *argv[]) {
   glfwSwapInterval(0);
 
   // Load OpenGL functions using glad
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize OpenGL loader (glad)" << std::endl;
     glfwTerminate();
     return -1;

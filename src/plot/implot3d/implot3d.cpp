@@ -51,6 +51,8 @@
 #include "implot3d.h"
 #include "implot3d_internal.h"
 
+#include <cstddef>
+
 #ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------
@@ -59,6 +61,14 @@
 
 #define IMPLOT3D_CHECK_CTX() IM_ASSERT_USER_ERROR(GImPlot3D != nullptr, "No current context. Did you call ImPlot3D::CreateContext() or ImPlot3D::SetCurrentContext()?")
 #define IMPLOT3D_CHECK_PLOT() IM_ASSERT_USER_ERROR(GImPlot3D->CurrentPlot != nullptr, "No active plot. Did you call ImPlot3D::BeginPlot()?")
+
+// imgui >= 1.90 兼容：IM_FLOOR / IM_OFFSETOF 已被移除
+#ifndef IM_FLOOR
+#define IM_FLOOR(_VAL) ImTrunc(_VAL)
+#endif
+#ifndef IM_OFFSETOF
+#define IM_OFFSETOF(_TYPE, _MEMBER) offsetof(_TYPE, _MEMBER)
+#endif
 
 //-----------------------------------------------------------------------------
 // [SECTION] Context
@@ -108,7 +118,7 @@ void AddTextRotated(ImDrawList* draw_list, ImVec2 pos, float angle, ImU32 col, c
     pos.x = IM_FLOOR(pos.x);
     pos.y = IM_FLOOR(pos.y);
 
-    const float scale = g.FontSize / font->FontSize;
+    const float scale = g.FontSize / font->LegacySize;
 
     // Measure the size of the text in unrotated coordinates
     ImVec2 text_size = font->CalcTextSizeA(g.FontSize, FLT_MAX, 0.0f, text_begin, text_end, nullptr);
@@ -137,7 +147,7 @@ void AddTextRotated(ImDrawList* draw_list, ImVec2 pos, float angle, ImU32 col, c
                 break;
         }
 
-        const ImFontGlyph* glyph = font->FindGlyph((ImWchar)c);
+        const ImFontGlyph* glyph = g.FontBaked->FindGlyph((ImWchar)c);
         if (glyph == nullptr) {
             continue;
         }

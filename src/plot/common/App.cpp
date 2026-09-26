@@ -196,7 +196,7 @@ App::App(std::string title, int w, int h, int argc, char const *argv[])
     glfwSwapInterval(no_vsync ? 0 : 1);
 
     // Initialize OpenGL loader
-    bool err = gladLoadGL() == 0;
+    bool err = gladLoaderLoadGL() == 0;
     if (err)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");

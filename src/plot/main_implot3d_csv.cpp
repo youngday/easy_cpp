@@ -9,7 +9,7 @@
 #include "main.hpp"
 #include "rapidcsv.h"
 
-#include "glad/glad.h"
+#include <glad/gl.h>
 #include "GLFW/glfw3.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -20,14 +20,14 @@
 #include <xtensor-blas/xblas.hpp>
 #include <xtensor-blas/xlapack.hpp>
 #include <xtensor-blas/xlinalg.hpp>
-#include <xtensor/xarray.hpp>
-#include <xtensor/xbuilder.hpp>
-#include <xtensor/xcsv.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xnpy.hpp>
-#include <xtensor/xpad.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xarray.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/generators/xbuilder.hpp>
+#include <xtensor/io/xcsv.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/io/xnpy.hpp>
+#include <xtensor/misc/xpad.hpp>
+#include <xtensor/views/xview.hpp>
 
 using namespace std;
 using namespace xt;
@@ -111,7 +111,7 @@ int main(int argc, char const *argv[]) {
   glfwSwapInterval(0);
 
   // Load OpenGL functions using glad
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+  if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize OpenGL loader (glad)" << std::endl;
     glfwTerminate();
     return -1;
