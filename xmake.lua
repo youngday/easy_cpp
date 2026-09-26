@@ -8,7 +8,7 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate")
 
 local libs = {
-    "nlohmann_json 3.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "toml++ 3.4.0",
+    "nlohmann_json 3.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "tomlc17 2026.08.21",
     "quill 12.0.0", "fmt 12.2.0",
     "cppzmq 4.11.0", "argparse 3.2", "atomic_queue 1.9.2",
     "concurrentqueue 1.0.5", "libhv 1.3.4",
@@ -57,6 +57,7 @@ target("config_toml")
 set_kind("binary")
 add_files("src/config/config_toml.cpp")
 
+-- sudo chmod 666 /dev/ttyS0
 target("async_serial_hex")
 set_kind("binary")
 -- add_linkdirs("lib")
@@ -69,15 +70,9 @@ target("async_serial_asiic")
 set_kind("binary")
 -- add_linkdirs("lib")
 -- add_links("CppLinuxSerial")
-add_files("src/async_serial/src/main_asiic.cpp" )
+add_files("src/async_serial/src/main_ascii.cpp" )
 add_files("src/async_serial/src/SerialPort.cpp" )
 add_includedirs("src/async_serial/include")
-
--- asio2
--- sudo chmod 666 /dev/ttyS0
-target("asio2_serial")
-set_kind("binary")
-add_files("src/asio2/serial.cpp")
 
 -- noblock mpmc_block mpmc_bulk
 target("queue_nonblock")
@@ -87,18 +82,6 @@ add_files("src/concurrentqueue/nonblock.cpp")
 target("queue_block")
 set_kind("binary")
 add_files("src/concurrentqueue/block.cpp")
-
-target("atomic_queue")
-    set_kind("binary")
-    add_files("src/atomic_queue/example.cc")
-
-target("atomic_queue_block")
-    set_kind("binary")
-    add_files("src/atomic_queue/block.cpp")
-
-target("atomic_queue_nonblock")
-    set_kind("binary")
-    add_files("src/atomic_queue/nonblock.cpp")
 
 target("json")
     set_kind("binary")
@@ -149,17 +132,6 @@ add_files("src/hv_websocket/websocket_server_test.cpp")
 target("xtensor")
     set_kind("binary")
     add_files("src/xtensor/xtensor.cpp")
-
--- 2d/3d gnu plot
-target("matplot")
-    set_kind("binary")
-    add_files("src/gnuplot/plot.cpp")
-    add_packages("matplotplusplus")
-
-target("matplotcsv")
-    set_kind("binary")
-    add_files("src/gnuplot/plot_csv.cpp")
-    add_packages("matplotplusplus")
 
 -- ============================================================
 -- ImPlot 系列：共用源码 / 头文件 / 依赖抽到 add_implot()，避免重复

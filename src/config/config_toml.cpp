@@ -1,4 +1,5 @@
 #include "main.hpp"
+#include "tomlc17.h"
 
 using namespace std;
 
@@ -9,45 +10,30 @@ int main(int argc, char *argv[]) {
   auto time_str = mylocal_time();
   LOG_INFO(logger, "Starting at {}!\n", time_str);
 
-  const auto config = toml::try_parse("config/config.toml");
-
-    if (!config.is_ok()) // error
-    {
-      LOG_INFO(logger, "parse toml file error.\n");
-    } else { // ok
-    }
-
-  vector<string> strTest;
-  auto toml_size = config.unwrap().at("str_array").at("test").as_array().size();
-  // auto test = config.unwrap().at("str_array").at("test").as_array().at(0).as_string();
-  for (size_t i = 0; i < toml_size; i++) {
-    // Pass the value directly to emplace_back()
-    strTest.emplace_back(config.unwrap().at("str_array").at("test").as_array().at(i).as_string()); // array to vector
+  // tomlc17: 解析文件失败时返回的 result.ok 为 false
+  toml_result_t res = toml_parse_file_ex("config/config.toml");
+  if (!res.ok) {
+    LOG_INFO(logger, "parse toml file error: {}\n", res.errmsg);
+    return 1;
   }
 
-    LOG_INFO(logger,"strTest:{0}.", strTest);
+  // str_array.test 是一个字符串数组
+  toml_datum_t str_array = toml_get(res.toptab, "str_array");
+  toml_datum_t test = toml_get(str_array, "test");
 
-  // // use a visitor to iterate over heterogenous data
-  // config.for_each([](auto &key, auto &value)
-  //                 {
-  // std::cout << value << "\n";
-  // if constexpr (toml::is_string<decltype(value)>)
-  //     do_something_with_string_values(value); });
+  vector<string> strTest;
+  if (test.type == TOML_ARRAY) {
+    for (int32_t i = 0; i < test.u.arr.size; i++) {
+      toml_datum_t elem = test.u.arr.elem[i];
+      if (elem.type == TOML_STRING) {
+        strTest.emplace_back(elem.u.str.ptr, elem.u.str.len);
+      }
+    }
+  }
 
-  // // you can also iterate more 'traditionally' using a ranged-for
-  // for (auto &&[k, v] : config)
-  // {
-  //     // ...
-  // }
+  LOG_INFO(logger, "strTest:{0}.", strTest);
 
-  // re-serialize as TOML
-  // std::cout << config << "\n";
-
-  // // re-serialize as JSON
-  // std::cout << toml::json_formatter{config} << "\n";
-
+  toml_free(res);
 
   return 0;
 }
-
-
