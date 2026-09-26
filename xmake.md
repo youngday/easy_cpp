@@ -96,7 +96,7 @@ xmake g --pkg_searchdirs=/xxx
 
 -- apt packages
 -- add_requires("apt::libxtensor-dev", {system = true})
--- add_requires("opencv", {system = true})
+
 -- cmake packages
 -- add_requires("cmake::xtensor", {system = true})
 -- conan packages
@@ -117,9 +117,17 @@ xmake g --pkg_searchdirs=/xxx
 
 ```
 
-## clangd 
 
+## 用 clang-14（最接近原意）
 
+```sh
+sudo apt install libstdc++-12-dev         # 或把这些换成为方案 B
+
+xmake g --pkg_searchdirs=                              # 清掉失效的 /home/youngday/... 搜索路径
+xmake f -c --cc=gcc-11 --cxx=g++-11 -y -v                  # 方案 B 则用 --toolchain=gcc
+xmake -y
+
+```
 
 ## compile_commands.json for clangd
 

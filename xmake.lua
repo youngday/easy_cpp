@@ -1,49 +1,59 @@
 set_xmakever("2.9.0")
 set_project("xmake-example")
 set_languages("c++20")
--- set_policy("build.warning", true)--warn
--- set_warnings("all", "extra")--warn
+-- set_policy("build.warning", true)
+-- set_warnings("all", "extra")
 add_rules("mode.debug", "mode.release")
 -- https://xmake.io/mirror/zh-cn/plugin/more_plugins.html
--- add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 add_rules("plugin.compile_commands.autoupdate")
 
-add_requires("opencv", {system = true})
-add_requires("openssl", {alias = "openssl", configs = { options = "OpenSSL:shared=True" }})
-add_requires( "nlohmann_json 3.11.3","simdutf 6.2","yaml-cpp 0.8.0", "toml++ 3.4.0","quill 8.2","fmt 11.1")
-add_requires( "cppzmq 4.10.0","argparse 3.2","atomic_queue 1.5.0","concurrentqueue 1.0.4","libhv 1.3.3")
-add_requires("xsimd 11.0.0","xtensor 0.25.0","xtensor-blas 0.20.0","xtl 0.7")
+-- ============================================================
+-- 第三方依赖
+--   add_requires : 下载/安装包
+--   add_packages : 链接到 target；写在根作用域会对所有 target 生效，
+--                  所以常规库统一在这里声明，target 内不再重复添加。
+-- ============================================================
 
-add_requires("libaio 0.3.113","drogon 1.9.8")
-add_requires("sqlite_orm 1.9 ", "sqlite3 3.45.0+300")
-add_requires("matplotplusplus 1.2.1")--gnuplot 2d/3d
-add_requires("imgui 1.91.8", {configs = {glfw= true,opengl3 = true,sdl2 = true}})
-add_requires("glad 0.1.36","nativefiledialog-extended 1.1.1","cxxopts 3.2.1","libcurl 8.5.0")
--- for ffmpeg c lib, require and link static lib
--- https://github.com/xmake-io/xmake/issues/4089
+-- 常规库：每个元素是 "包名 版本"，requires 与 packages 由同一份清单生成，
+-- 避免两处版本/包名漂移。
+local libs = {
+    "nlohmann_json 3.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "toml++ 3.4.0",
+    "quill 12.0.0", "fmt 12.2.0",
+    "cppzmq 4.11.0", "argparse 3.2", "atomic_queue 1.9.2",
+    "concurrentqueue 1.0.5", "libhv 1.3.4",
+    "xsimd 14.3.0", "xtensor 0.27.1", "xtensor-blas 0.23.0", "xtl 0.8.2",
+    "drogon 1.9.13",
+    "sqlite_orm 1.9.1", "sqlite3 3.53.0+400",
+}
+for _, spec in ipairs(libs) do
+    add_requires(spec)                            -- 下载/安装
+    add_packages(spec:match("^%S+") or spec)      -- 链接到所有 target
+end
 
-add_requires("libavutil")
-add_requires("libavcodec")
-add_requires("libavformat")
-add_requires("libavdevice")
-add_requires("libavfilter")
-add_requires("libswscale")
-add_requires("libswresample")
-add_requires("libpostproc")
+-- 仅按需链接到具体 target 的包（实际链接由对应 target 内的 add_packages 决定）
+add_requires("matplotplusplus 1.2.2", "glad 2.0.8",
+             "nativefiledialog-extended 1.3.0", "cxxopts 3.3.1", "libcurl 8.21.0")
 
+-- 需要 configs 的包，单独声明
+add_requires("openssl", {alias = "openssl", configs = {options = "OpenSSL:shared=True"}})
+add_requires("imgui 1.92.9+b", {configs = {glfw = true, opengl3 = true, sdl2 = true}})
 
-add_packages( "nlohmann_json","simdutf","yaml-cpp", "toml++","quill","fmt")
-add_packages( "cppzmq","argparse","atomic_queue","concurrentqueue","libhv")
-add_packages("xtensor","xtensor-blas","xtl","xsimd")
-add_packages("drogon")
-add_packages("sqlite_orm","sqlite3")
+-- ffmpeg：xmake-repo 没有 libav* 独立包，这里直接用系统 ffmpeg，
+-- 由 ffmpeg target 的 add_links(avfilter/avcodec/...) 链接（需系统装有 ffmpeg 开发库）
 
-add_links("atomic") --NOTE: clang donot link atomic ,need add manually .if not ,issue:undefined reference to `__atomic_is_lock_free'
+-- ============================================================
+-- 公共配置
+-- ============================================================
+-- clang 不自动链接 atomic，否则报 undefined reference to `__atomic_is_lock_free'
+add_links("atomic")
 
-add_includedirs("src/utils")
+add_includedirs("src/utils", "src/")
 add_files("src/utils/*.cpp")
 
-add_includedirs("src/")
+-- ============================================================
+-- targets
+-- ============================================================
+
 target("test")
     set_kind("binary")
     add_files("src/async/test.cpp")
@@ -56,7 +66,7 @@ target("sqlite_orm")
 target("config_toml")
     set_kind("binary")
     add_files("src/config/config_toml.cpp")
-    
+
 target("serial")
     set_kind("binary")
     add_linkdirs("lib")
@@ -73,13 +83,14 @@ target("queue_block")
     set_kind("binary")
     add_files("src/concurrentqueue/block.cpp")
 
--- add_links("atomic") --NOTE: clang donot link atomic ,need add manually .if not ,issue:undefined reference to `__atomic_is_lock_free'
 target("atomic_queue")
     set_kind("binary")
     add_files("src/atomic_queue/example.cc")
+
 target("atomic_queue_block")
     set_kind("binary")
     add_files("src/atomic_queue/block.cpp")
+
 target("atomic_queue_nonblock")
     set_kind("binary")
     add_files("src/atomic_queue/nonblock.cpp")
@@ -87,131 +98,114 @@ target("atomic_queue_nonblock")
 target("json")
     set_kind("binary")
     add_files("src/json/json.cpp")
+
 target("async")
     set_kind("binary")
     add_files("src/async/async.cpp")
-    -- drogon
-target("http_file_upload")
-    set_kind("binary")
-    add_files("src/drogon/file_upload/file_upload.cc")
-target("websocket_client")
-    set_kind("binary")
-    add_files("src/drogon/websocket_client/WebSocketClient.cc")
-target("websocket_server")
-    set_kind("binary")
-    add_files("src/drogon/websocket_server/WebSocketServer.cc")
-
 
 -- libhv
 target("hv_udp_client")
     set_kind("binary")
     add_files("src/hv_udp/UdpClient_test.cpp")
+
 target("hv_udp_server")
     set_kind("binary")
-    add_files("src/hv_udp/UdpServer_test.cpp")        
+    add_files("src/hv_udp/UdpServer_test.cpp")
+
 target("hv_tcp_client")
     set_kind("binary")
     add_files("src/hv_tcp/TcpClient_test.cpp")
+
 target("hv_tcp_client_loop")
     set_kind("binary")
     add_files("src/hv_tcp/TcpClientEventLoop_test.cpp")
+
 target("hv_tcp_server")
     set_kind("binary")
-    add_files("src/hv_tcp/TcpServer_test.cpp")    
+    add_files("src/hv_tcp/TcpServer_test.cpp")
+
 target("hv_http_client")
     set_kind("binary")
     add_files("src/hv_http/http_client_test.cpp")
+
 target("hv_http_server")
     set_kind("binary")
-    add_files("src/hv_http/http_server_test.cpp")    
+    add_files("src/hv_http/http_server_test.cpp")
+
 target("hv_websocket_client")
     set_kind("binary")
     add_files("src/hv_websocket/websocket_client_test.cpp")
+
 target("hv_websocket_server")
     set_kind("binary")
     add_files("src/hv_websocket/websocket_server_test.cpp")
 
--- srpc  rpc(proto,msgpack,json)
+-- xtensor / xtensor-blas 已在根作用域 add_packages，这里无需重复
 target("xtensor")
     set_kind("binary")
     add_files("src/xtensor/xtensor.cpp")
-    add_packages("xtensor") 
-    add_packages("xtensor-blas") 
- 
-target("ffmpeg")
-    set_kind("binary")
-    add_files("src/streamer/*.cpp")
-    add_includedirs("src/streamer")
-    -- add_packages("ffmpeg", {public = true})
-    add_packages("opencv")
-    add_links("avfilter", "avdevice", "avformat", "avcodec", "swscale", "swresample", "avutil","postproc")
--- 2d/3d gnu plot 
+
+-- 2d/3d gnu plot
 target("matplot")
     set_kind("binary")
     add_files("src/gnuplot/plot.cpp")
     add_packages("matplotplusplus")
+
 target("matplotcsv")
     set_kind("binary")
     add_files("src/gnuplot/plot_csv.cpp")
-    add_packages( "matplotplusplus")
+    add_packages("matplotplusplus")
 
--- 2d plot ,static ,dynamic
+-- ============================================================
+-- ImPlot 系列：共用源码 / 头文件 / 依赖抽到 add_implot()，避免重复
+--   add_implot(额外源码, 额外头文件目录)
+-- ============================================================
+local implot_files = {
+    "src/plot/common/Fonts/*.cpp",
+    "src/plot/implot/*.cpp",
+    "src/plot/common/*.cpp",
+}
+local implot_incs = {
+    "src/plot/common",
+    "src/plot/implot",
+    "src/plot/common/Fonts",
+}
+local implot_pkgs = {"imgui", "glad", "nativefiledialog-extended", "cxxopts"}
+
+local function add_implot(extra_file, extra_inc)
+    for _, f in ipairs(implot_files) do add_files(f) end
+    for _, d in ipairs(implot_incs) do add_includedirs(d) end
+    for _, p in ipairs(implot_pkgs) do add_packages(p) end
+    if extra_file then add_files(extra_file) end
+    if extra_inc then add_includedirs(extra_inc) end
+end
+
+-- 2d plot: static / dynamic / csv
 target("implot_dynamic")
     set_kind("binary")
     add_files("src/plot/main_implot_dynamic.cpp")
+    add_implot()
 
-    add_files("src/plot/common/Fonts/*.cpp")
-    add_files("src/plot/implot/*.cpp")
-    add_files("src/plot/common/*.cpp")
-    add_includedirs("src/plot/common")
-    add_includedirs("src/plot/implot")
-    add_includedirs("src/plot/common/Fonts")
-    add_packages("imgui","glad","nativefiledialog-extended","cxxopts")
 target("implot_static")
     set_kind("binary")
     add_files("src/plot/main_implot_static.cpp")
-    add_files("src/plot/common/Fonts/*.cpp")
-    add_files("src/plot/implot/*.cpp")
-    add_files("src/plot/common/*.cpp")
-    add_includedirs("src/plot/common")
-    add_includedirs("src/plot/implot")
-    add_includedirs("src/plot/common/Fonts")
-    add_packages("imgui","glad","nativefiledialog-extended","cxxopts")
+    add_implot()
+
 target("implot_csv")
     set_kind("binary")
     add_files("src/plot/main_implot_csv.cpp")
-    add_files("src/plot/common/Fonts/*.cpp")
-    add_files("src/plot/implot/*.cpp")
-    add_files("src/plot/common/*.cpp")
-    add_includedirs("src/plot/common")
-    add_includedirs("src/plot/implot")
-    add_includedirs("src/plot/common/Fonts")
-    add_packages("imgui","glad","nativefiledialog-extended","cxxopts")
+    add_implot()
 
+-- 3d plot
 target("implot3d")
     set_kind("binary")
     add_files("src/plot/main_implot3d.cpp")
-    add_files("src/plot/common/Fonts/*.cpp")
-    add_files("src/plot/implot/*.cpp")
-    add_files("src/plot/common/*.cpp")
-    add_files("src/plot/implot3d/*.cpp")
-    add_includedirs("src/plot/common")
-    add_includedirs("src/plot/implot")
-    add_includedirs("src/plot/common/Fonts")
-    add_includedirs("src/plot/implot3d")
-    add_packages("imgui","glad","nativefiledialog-extended","cxxopts")
+    add_implot("src/plot/implot3d/*.cpp", "src/plot/implot3d")
+
 target("implot3d_csv")
     set_kind("binary")
     add_files("src/plot/main_implot3d_csv.cpp")
-    add_files("src/plot/common/Fonts/*.cpp")
-    add_files("src/plot/implot/*.cpp")
-    add_files("src/plot/common/*.cpp")
-    add_files("src/plot/implot3d/*.cpp")
-    add_includedirs("src/plot/common")
-    add_includedirs("src/plot/implot")
-    add_includedirs("src/plot/common/Fonts")
-    add_includedirs("src/plot/implot3d")
-    add_packages("imgui","glad","nativefiledialog-extended","cxxopts")
+    add_implot("src/plot/implot3d/*.cpp", "src/plot/implot3d")
 
 target("base64")
     set_kind("binary")

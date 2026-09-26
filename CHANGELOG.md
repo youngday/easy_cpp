@@ -15,7 +15,6 @@ quill 6.1.2 to 7.5.0
 * add atomic_queue,but just send one data at once .
 * add launch file for vscode plug in of lldb.
 * add concurrentqueue package in xmake.lua.
-* add opencv to ffmpeg stream push example.
 
 ## 12.9 2023
 
