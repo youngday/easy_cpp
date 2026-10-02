@@ -31,8 +31,8 @@ jobs:
           restore-keys: |
             xmake-${{ runner.os }}-
 
-      - name: configure
-        run: xmake f -y -m release
+      - name: configure (core only, no GUI/X11 deps)
+        run: xmake f -y -m release --plot=n
 
       - name: build core targets
         run: xmake build -y -g core

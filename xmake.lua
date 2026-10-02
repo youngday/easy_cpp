@@ -7,6 +7,15 @@ add_rules("mode.debug", "mode.release")
 -- https://xmake.io/mirror/zh-cn/plugin/more_plugins.html
 add_rules("plugin.compile_commands.autoupdate")
 
+-- plot 组开关。imgui 的 glfw 后端会拉取 glfw -> libx11/libxext/libxrandr/...
+-- 整棵 X11 依赖树，而且 `xmake f` 阶段就会解析/安装。只构建 core 的场景
+-- （如 CI）用 `xmake f --plot=n` 跳过，避免在没有图形库的机器上安装失败。
+option("plot")
+    set_default(true)
+    set_showmenu(true)
+    set_description("Build implot/implot3d GUI targets (requires system GL/GLFW/X11)")
+option_end()
+
 -- ============================================================
 -- 依赖声明
 --
@@ -32,16 +41,19 @@ add_requires("xtl 0.8.2")
 add_requires("sqlite_orm 1.9.1")
 add_requires("sqlite3 3.53.0+400")
 add_requires("cppzmq 4.11.0")
--- plot 系列（implot / implot3d）
-add_requires("glad 2.0.8")
-add_requires("nativefiledialog-extended 1.3.0")
-add_requires("cxxopts 3.3.1")
-add_requires("imgui 1.92.9+b", {configs = {glfw = true, opengl3 = true, sdl2 = true}})
+-- plot 系列（implot / implot3d）：仅在 --plot=y 时解析。
+-- imgui 的 glfw 后端经 glfw 拉取 libx11/libxext/libxrandr/libxinerama/... 
+-- 原实现还开了 sdl2（本项目未使用，sdl2 同样依赖 libxext），一并去掉。
+if has_config("plot") then
+    add_requires("glad 2.0.8")
+    add_requires("nativefiledialog-extended 1.3.0")
+    add_requires("cxxopts 3.3.1")
+    add_requires("imgui 1.92.9+b", {configs = {glfw = true, opengl3 = true}})
+end
 
 -- ------------------------------------------------------------
 -- 备用依赖（当前源码未使用，保留声明以便按需启用，避免无谓下载/编译）
 -- 需要时把对应行取消注释，并在 target 内 add_packages：
---                     需要时恢复该示例再启用
 --   yaml-cpp        : 配置若改用 YAML
 --   argparse        : 命令行解析备选（现用 cxxopts）
 --   atomic_queue    : lock-free 队列备选（现用 concurrentqueue）
@@ -83,16 +95,18 @@ target("utils")
 -- plot_common：implot / implot3d / common / Fonts 公共源码。
 -- 5 个 plot 程序原本各自编译一遍这些文件（implot 及其 demo/items 体积不小），
 -- 现在只编译一次。静态库按需抽取目标文件，2d 程序不会真的链接进 implot3d 的符号。
-target("plot_common")
-    set_kind("static")
-    add_files("src/plot/common/*.cpp",
-              "src/plot/common/Fonts/*.cpp",
-              "src/plot/implot/*.cpp",
-              "src/plot/implot3d/*.cpp")
-    add_includedirs("src/plot/common", "src/plot/implot",
-                    "src/plot/common/Fonts", "src/plot/implot3d", {public = true})
-    add_packages("imgui", "glad", "nativefiledialog-extended", "cxxopts", {public = true})
-    add_deps("utils", {public = true})
+if has_config("plot") then
+    target("plot_common")
+        set_kind("static")
+        add_files("src/plot/common/*.cpp",
+                  "src/plot/common/Fonts/*.cpp",
+                  "src/plot/implot/*.cpp",
+                  "src/plot/implot3d/*.cpp")
+        add_includedirs("src/plot/common", "src/plot/implot",
+                        "src/plot/common/Fonts", "src/plot/implot3d", {public = true})
+        add_packages("imgui", "glad", "nativefiledialog-extended", "cxxopts", {public = true})
+        add_deps("utils", {public = true})
+end
 
 -- ============================================================
 -- targets —— 组 "core"（无 GUI 依赖，可在 CI 中构建）
@@ -210,38 +224,42 @@ end
 -- ============================================================
 -- ImPlot 系列 —— 组 "plot"（依赖 GL/GLFW，需系统图形库）
 -- 公共源码在 plot_common 静态库中，这里只编译各自的 main_*.cpp
+-- 整个组随 --plot 开关（默认开）启停。
 -- ============================================================
+if has_config("plot") then
 
--- 2d plot: static / dynamic / csv
-target("implot_dynamic")
-    set_kind("binary")
-    set_group("plot")
-    add_files("src/plot/main_implot_dynamic.cpp")
-    add_deps("plot_common")
+    -- 2d plot: static / dynamic / csv
+    target("implot_dynamic")
+        set_kind("binary")
+        set_group("plot")
+        add_files("src/plot/main_implot_dynamic.cpp")
+        add_deps("plot_common")
 
-target("implot_static")
-    set_kind("binary")
-    set_group("plot")
-    add_files("src/plot/main_implot_static.cpp")
-    add_deps("plot_common")
+    target("implot_static")
+        set_kind("binary")
+        set_group("plot")
+        add_files("src/plot/main_implot_static.cpp")
+        add_deps("plot_common")
 
-target("implot_csv")
-    set_kind("binary")
-    set_group("plot")
-    add_files("src/plot/main_implot_csv.cpp")
-    add_deps("plot_common")
-    add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
+    target("implot_csv")
+        set_kind("binary")
+        set_group("plot")
+        add_files("src/plot/main_implot_csv.cpp")
+        add_deps("plot_common")
+        add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
 
--- 3d plot
-target("implot3d")
-    set_kind("binary")
-    set_group("plot")
-    add_files("src/plot/main_implot3d.cpp")
-    add_deps("plot_common")
+    -- 3d plot
+    target("implot3d")
+        set_kind("binary")
+        set_group("plot")
+        add_files("src/plot/main_implot3d.cpp")
+        add_deps("plot_common")
 
-target("implot3d_csv")
-    set_kind("binary")
-    set_group("plot")
-    add_files("src/plot/main_implot3d_csv.cpp")
-    add_deps("plot_common")
-    add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
+    target("implot3d_csv")
+        set_kind("binary")
+        set_group("plot")
+        add_files("src/plot/main_implot3d_csv.cpp")
+        add_deps("plot_common")
+        add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
+
+end

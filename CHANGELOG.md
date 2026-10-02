@@ -8,6 +8,9 @@
 * 未使用的依赖（yaml-cpp/argparse/atomic_queue/matplotplusplus/libcurl/openssl）改为注释保留。
 * 新增 cppzmq target（src/cppzmq/cppzmq.cpp，用 nlohmann_json 构造报文）。
 * compile_commands.json 取消跟踪（改由 .gitignore 忽略）。
+* 新增 option `plot`：GUI 依赖（imgui→glfw→libx11/libxext/...）改为 `--plot=y` 才解析，
+  CI 用 `xmake f --plot=n` 只构建 core，修复 GitHub Actions 安装 libxext 失败的问题；
+  同时去掉 imgui 未使用的 `sdl2` 后端。
 
 ## 03.01 2025
 replace coost with libhv.

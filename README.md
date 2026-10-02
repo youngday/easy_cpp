@@ -14,6 +14,16 @@ xmake build -y -g plot    # 只构建 plot 组
 xmake build -y            # 构建全部
 ```
 
+plot 组开关：
+
+* `--plot=y`（默认）—— 解析并构建 implot/implot3d，需要系统 GL/GLFW/X11
+* `--plot=n` —— 完全跳过 GUI 依赖，CI 与无图形库的机器用这个：
+
+```sh
+xmake f -y -m release --plot=n   # 不会拉取 imgui/glfw/libx11/libxext 依赖树
+xmake build -y -g core
+```
+
 共享静态库（避免重复编译）：
 
 * `utils` —— src/utils（log / mytime），被需要日志/时间的 target 依赖
