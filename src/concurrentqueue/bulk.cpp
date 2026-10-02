@@ -2,7 +2,7 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
-#include "concurrentqueue/blockingconcurrentqueue.h"
+#include "blockingconcurrentqueue.h"
 using namespace std;
 
 int main()

@@ -1,10 +1,10 @@
 
-#pragma once
 #include "main.hpp"
 #include <future>
 #include "zmq.hpp"
 #include "zmq_addon.hpp"
-#
+#include <nlohmann/json.hpp>
+
 
 
 using std::string;
@@ -48,7 +48,7 @@ void PublisherThread(zmq::context_t *ctx)
         u.id = 1230 + cnt;
         u.name = "testname";
 
-         jstr;
+         nlohmann::json jstr;
         jstr["id"] = u.id;
         jstr["name"] = u.name;
         //LOG_S(INFO) << "json:" << jstr.dump() << endl;
@@ -167,4 +167,14 @@ int cppzmq_app()
      *     Thread3: [C] Message in C envelope
      */
     return true;
+}
+
+int main() {
+    quill_init();
+    auto time_str = mylocal_time();
+    LOG_INFO(logger, "⏰cppzmq starting at {}!", time_str);
+    logger->flush_log();
+
+    cppzmq_app();
+    return 0;
 }

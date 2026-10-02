@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 10.02 2026
+* xmake.lua 重构：依赖按 target 声明，不再把全部包链接进每个可执行文件；新增 core / plot 两个 target group。
+* 公共代码抽成静态库 utils、plot_common，避免重复编译（utils ×10、plot 公共源码 ×5）。
+* 修复 .github/workflows/main.yml（原本是 action.yml 的副本，CI 从未运行），改为构建 core 组。
+* 删除失效源码 src/main.cpp、src/sqlite_orm.cpp、src/test_cppzmq.cpp；修复 bulk.cpp 的 include 并补上 queue_bulk target。
+* 未使用的依赖（yaml-cpp/argparse/atomic_queue/matplotplusplus/libcurl/openssl）改为注释保留。
+* 新增 cppzmq target（src/cppzmq/cppzmq.cpp，用 nlohmann_json 构造报文）。
+* compile_commands.json 取消跟踪（改由 .gitignore 忽略）。
+
 ## 03.01 2025
 replace coost with libhv.
 ## 12.21 2024

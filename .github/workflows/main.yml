@@ -1,41 +1,38 @@
-name: setup xmake
-description: Set up a xmake environment and add it to the PATH
-author: OpportunityLiu
-branding:
-  icon: play
-  color: green
+name: build
 
-inputs:
-  xmake-version:
-    required: true
-    default: latest
-    description: The version to use. Should be a semver range or 'latest'. Or use [{repository}#]branch@{branch_name} to select a branch.
-  actions-cache-folder:
-    description: 'Directory to cache xmake in. This folder will go under $GITHUB_HOME (I.e. build dir) and be cached using @actions/cache.'
-    default: ''
-  actions-cache-key:
-    description: The actions cache key.
-    default: ''
-  package-cache:
-    description: Enable package cache.
-    default: false
-  package-cache-key:
-    description: The packages cache key.
-    default: ''
-  project-path:
-    description: The project root path.
-    default: ''
-  build-cache:
-    description: Enable build cache.
-    default: false
-  build-cache-path:
-    description: The build cache path.
-    default: ''
-  build-cache-key:
-    description: The build cache key.
-    default: ''
+# 原 .github/workflows/main.yml 的内容是 action.yml（setup-xmake action 定义）的
+# 副本，缺少 `on:` / `jobs:`，GitHub 不会把它当 workflow 执行，等于没有 CI。
+# 这里替换为真正可运行的构建流程。
+#
+# 只构建 "core" 组（json / queue / libhv / sqlite_orm / xtensor / 串口 ...），
+# 不含 "plot" 组：implot/implot3d 需要系统 GL/GLFW/X11 等图形库，
+# 在无显示器的 runner 上构建成本高且易碎，留给本地构建。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
-runs:
-  using: 'node20'
-  main: 'dist/index.js'
-  post: 'dist/index.js'
+jobs:
+  build-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: cache xmake packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.xmake/packages
+          key: xmake-${{ runner.os }}-${{ hashFiles('xmake.lua') }}
+          restore-keys: |
+            xmake-${{ runner.os }}-
+
+      - name: configure
+        run: xmake f -y -m release
+
+      - name: build core targets
+        run: xmake build -y -g core

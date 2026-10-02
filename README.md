@@ -1,5 +1,24 @@
 # xmake-example
 
+## build
+
+源码按 target group 组织，共享代码抽成静态库，便于分场景构建：
+
+* `core` —— 无 GUI 依赖（json / queue / libhv / sqlite_orm / xtensor / 串口 …），CI 构建这一组
+* `plot` —— implot / implot3d 可视化示例，依赖系统 GL/GLFW
+
+```sh
+xmake f -y -m release     # 配置（依赖按 target 声明）
+xmake build -y -g core    # 只构建 core 组
+xmake build -y -g plot    # 只构建 plot 组
+xmake build -y            # 构建全部
+```
+
+共享静态库（避免重复编译）：
+
+* `utils` —— src/utils（log / mytime），被需要日志/时间的 target 依赖
+* `plot_common` —— implot / implot3d / common / Fonts 公共源码，5 个 plot 程序共用
+
 ## 网络优化
 https://xmake.io/zh/guide/package-management/network-optimization.html
 ```txt

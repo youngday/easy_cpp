@@ -7,29 +7,58 @@ add_rules("mode.debug", "mode.release")
 -- https://xmake.io/mirror/zh-cn/plugin/more_plugins.html
 add_rules("plugin.compile_commands.autoupdate")
 
-local libs = {
-    "yyjson 0.12.0", "simdutf 8.2.0", "yaml-cpp 0.8.0", "tomlc17 2026.08.21",
-    "quill 12.0.0", "fmt 12.2.0",
-    "cppzmq 4.11.0", "argparse 3.2", "atomic_queue 1.9.2",
-    "concurrentqueue 1.0.5", "libhv 1.3.4",
-    "xsimd 14.3.0", "xtensor 0.27.1", "xtensor-blas 0.23.0", "xtl 0.8.2",
-    "sqlite_orm 1.9.1", "sqlite3 3.53.0+400",
-}
-for _, spec in ipairs(libs) do
-    add_requires(spec)                            -- 下载/安装
-    add_packages(spec:match("^%S+") or spec)      -- 链接到所有 target
-end
-
--- 仅按需链接到具体 target 的包（实际链接由对应 target 内的 add_packages 决定）
-add_requires("matplotplusplus 1.2.2", "glad 2.0.8",
-             "nativefiledialog-extended 1.3.0", "cxxopts 3.3.1", "libcurl 8.21.0")
-
--- 需要 configs 的包，单独声明
-add_requires("openssl", {alias = "openssl", configs = {options = "OpenSSL:shared=True"}})
+-- ============================================================
+-- 依赖声明
+--
+-- 这里只做 add_requires（声明 + 拉取），不在这里 add_packages。
+-- 原实现把所有包 add_packages 到根作用域，等于把 xtensor-blas / sqlite3 /
+-- libhv / quill 等重量级库链接进每一个可执行文件（含 concurrentqueue demo、
+-- 串口 demo）。现在改为在具体 target 内按需 add_packages：
+--   * 每个 target 只编译/链接自己真正 #include 的包；
+--   * 未使用的包不再进入链接行，增量构建与 `xmake f` 都更快。
+-- ============================================================
+add_requires("yyjson 0.12.0")
+add_requires("nlohmann_json 3.12.0")
+add_requires("simdutf 8.2.0")
+add_requires("tomlc17 2026.08.21")
+add_requires("quill 12.0.0")
+add_requires("fmt 12.2.0")
+add_requires("concurrentqueue 1.0.5")
+add_requires("libhv 1.3.4")
+add_requires("xsimd 14.3.0")
+add_requires("xtensor 0.27.1")
+add_requires("xtensor-blas 0.23.0")
+add_requires("xtl 0.8.2")
+add_requires("sqlite_orm 1.9.1")
+add_requires("sqlite3 3.53.0+400")
+add_requires("cppzmq 4.11.0")
+-- plot 系列（implot / implot3d）
+add_requires("glad 2.0.8")
+add_requires("nativefiledialog-extended 1.3.0")
+add_requires("cxxopts 3.3.1")
 add_requires("imgui 1.92.9+b", {configs = {glfw = true, opengl3 = true, sdl2 = true}})
 
--- ffmpeg：xmake-repo 没有 libav* 独立包，这里直接用系统 ffmpeg，
--- 由 ffmpeg target 的 add_links(avfilter/avcodec/...) 链接（需系统装有 ffmpeg 开发库）
+-- ------------------------------------------------------------
+-- 备用依赖（当前源码未使用，保留声明以便按需启用，避免无谓下载/编译）
+-- 需要时把对应行取消注释，并在 target 内 add_packages：
+--                     需要时恢复该示例再启用
+--   yaml-cpp        : 配置若改用 YAML
+--   argparse        : 命令行解析备选（现用 cxxopts）
+--   atomic_queue    : lock-free 队列备选（现用 concurrentqueue）
+--   matplotplusplus : 数据可视化备选（现用 implot），2.15.2023 曾用
+--   libcurl         : HTTP 客户端备选（现用 libhv）
+--   openssl         : 如需 libhv https/ssl 再显式打开
+-- ------------------------------------------------------------
+
+-- add_requires("yaml-cpp 0.8.0")
+-- add_requires("argparse 3.2")
+-- add_requires("atomic_queue 1.9.2")
+-- add_requires("matplotplusplus 1.2.2")
+-- add_requires("libcurl 8.21.0")
+-- add_requires("openssl", {alias = "openssl", configs = {options = "OpenSSL:shared=True"}})
+
+-- ffmpeg：xmake-repo 没有 libav* 独立包，如需使用直接用系统 ffmpeg，
+-- 由对应 target 的 add_links(avfilter/avcodec/...) 链接（需系统装有 ffmpeg 开发库）
 
 -- ============================================================
 -- 公共配置
@@ -37,153 +66,182 @@ add_requires("imgui 1.92.9+b", {configs = {glfw = true, opengl3 = true, sdl2 = t
 -- clang 不自动链接 atomic，否则报 undefined reference to `__atomic_is_lock_free'
 add_links("atomic")
 
-add_includedirs("src/utils", "src/")
-add_files("src/utils/*.cpp")
+-- ============================================================
+-- 公共静态库
+-- ============================================================
+
+-- utils：src/utils（log / mytime + main.hpp 及子头）。
+-- 抽成静态库后 log.cpp / mytime.cpp 只编译一次，而不是被 ~10 个 target 各编译一遍。
+-- public 的 includedirs / packages 会传递给依赖它的 target，
+-- 因此依赖方只需 add_deps("utils")，无需重复声明。
+target("utils")
+    set_kind("static")
+    add_files("src/utils/*.cpp")
+    add_includedirs("src/utils", "src/", {public = true})
+    add_packages("simdutf", "fmt", "quill", {public = true})
+
+-- plot_common：implot / implot3d / common / Fonts 公共源码。
+-- 5 个 plot 程序原本各自编译一遍这些文件（implot 及其 demo/items 体积不小），
+-- 现在只编译一次。静态库按需抽取目标文件，2d 程序不会真的链接进 implot3d 的符号。
+target("plot_common")
+    set_kind("static")
+    add_files("src/plot/common/*.cpp",
+              "src/plot/common/Fonts/*.cpp",
+              "src/plot/implot/*.cpp",
+              "src/plot/implot3d/*.cpp")
+    add_includedirs("src/plot/common", "src/plot/implot",
+                    "src/plot/common/Fonts", "src/plot/implot3d", {public = true})
+    add_packages("imgui", "glad", "nativefiledialog-extended", "cxxopts", {public = true})
+    add_deps("utils", {public = true})
 
 -- ============================================================
--- targets
+-- targets —— 组 "core"（无 GUI 依赖，可在 CI 中构建）
 -- ============================================================
 
 target("test")
-set_kind("binary")
-add_files("src/async/test.cpp")
-
-target("sqlite_orm")
-set_kind("binary")
-add_files("src/sqlite_orm/main.cpp")
-
--- config log
-target("config_toml")
-set_kind("binary")
-add_files("src/config/config_toml.cpp")
-
--- sudo chmod 666 /dev/ttyS0
-target("async_serial2_hex")
-set_kind("binary")
--- add_linkdirs("lib")
--- add_links("CppLinuxSerial")
-add_files("src/async_serial2/src/main.cpp" )
-add_files("src/async_serial2/src/SerialPort.cpp" )
-add_includedirs("src/async_serial2/include")
-
-target("async_serial2_asiic")
-set_kind("binary")
--- add_linkdirs("lib")
--- add_links("CppLinuxSerial")
-add_files("src/async_serial2/src/main_ascii.cpp" )
-add_files("src/async_serial2/src/SerialPort.cpp" )
-add_includedirs("src/async_serial2/include")
-
--- noblock mpmc_block mpmc_bulk
-target("queue_nonblock")
-set_kind("binary")
-add_files("src/concurrentqueue/nonblock.cpp")
-
-target("queue_block")
-set_kind("binary")
-add_files("src/concurrentqueue/block.cpp")
-
-target("json")
     set_kind("binary")
-    add_files("src/json/json.cpp")
+    set_group("core")
+    add_files("src/async/test.cpp")
+    add_deps("utils")
 
 target("async")
     set_kind("binary")
+    set_group("core")
     add_files("src/async/async.cpp")
+    add_deps("utils")
 
--- libhv
-target("hv_udp_client")
+target("base64")
     set_kind("binary")
-    add_files("src/hv_udp/UdpClient_test.cpp")
+    set_group("core")
+    add_files("src/base64/base64.cpp")
+    add_deps("utils")
 
-target("hv_udp_server")
+target("json")
     set_kind("binary")
-    add_files("src/hv_udp/UdpServer_test.cpp")
+    set_group("core")
+    add_files("src/json/json.cpp")
+    add_deps("utils")
+    add_packages("yyjson")
 
-target("hv_tcp_client")
+-- config log
+target("config_toml")
     set_kind("binary")
-    add_files("src/hv_tcp/TcpClient_test.cpp")
+    set_group("core")
+    add_files("src/config/config_toml.cpp")
+    add_deps("utils")
+    add_packages("tomlc17")
 
-target("hv_tcp_client_loop")
+target("sqlite_orm")
     set_kind("binary")
-    add_files("src/hv_tcp/TcpClientEventLoop_test.cpp")
+    set_group("core")
+    add_files("src/sqlite_orm/main.cpp")
+    add_deps("utils")
+    add_packages("sqlite_orm", "sqlite3")
 
-target("hv_tcp_server")
+-- lock-free queue demo：noblock / block / bulk
+target("queue_nonblock")
     set_kind("binary")
-    add_files("src/hv_tcp/TcpServer_test.cpp")
+    set_group("core")
+    add_files("src/concurrentqueue/nonblock.cpp")
+    add_deps("utils")
+    add_packages("concurrentqueue")
 
-target("hv_http_client")
+target("queue_block")
     set_kind("binary")
-    add_files("src/hv_http/http_client_test.cpp")
+    set_group("core")
+    add_files("src/concurrentqueue/block.cpp")
+    add_deps("utils")
+    add_packages("concurrentqueue")
 
-target("hv_http_server")
+target("queue_bulk")
     set_kind("binary")
-    add_files("src/hv_http/http_server_test.cpp")
-
-target("hv_websocket_client")
+    set_group("core")
+    add_files("src/concurrentqueue/bulk.cpp")
+    add_packages("concurrentqueue")
+target("cppzmq")
     set_kind("binary")
-    add_files("src/hv_websocket/websocket_client_test.cpp")
+    set_group("core")
+    add_files("src/cppzmq/cppzmq.cpp")
+    add_deps("utils")
+    add_packages("cppzmq", "nlohmann_json")
 
-target("hv_websocket_server")
-set_kind("binary")
-add_files("src/hv_websocket/websocket_server_test.cpp")
-
--- xtensor / xtensor-blas 已在根作用域 add_packages，这里无需重复
+-- xtensor / xtensor-blas：xtensor.cpp 直接 include xtensor-blas，需显式链接
 target("xtensor")
     set_kind("binary")
+    set_group("core")
     add_files("src/xtensor/xtensor.cpp")
+    add_deps("utils")
+    add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
 
--- ============================================================
--- ImPlot 系列：共用源码 / 头文件 / 依赖抽到 add_implot()，避免重复
---   add_implot(额外源码, 额外头文件目录)
--- ============================================================
-local implot_files = {
-    "src/plot/common/Fonts/*.cpp",
-    "src/plot/implot/*.cpp",
-    "src/plot/common/*.cpp",
+-- libhv：udp / tcp / http / websocket，仅依赖 libhv，不需要 utils
+local hv_targets = {
+    {"hv_udp_client",       "src/hv_udp/UdpClient_test.cpp"},
+    {"hv_udp_server",       "src/hv_udp/UdpServer_test.cpp"},
+    {"hv_tcp_client",       "src/hv_tcp/TcpClient_test.cpp"},
+    {"hv_tcp_client_loop",  "src/hv_tcp/TcpClientEventLoop_test.cpp"},
+    {"hv_tcp_server",       "src/hv_tcp/TcpServer_test.cpp"},
+    {"hv_http_client",      "src/hv_http/http_client_test.cpp"},
+    {"hv_http_server",      "src/hv_http/http_server_test.cpp"},
+    {"hv_websocket_client", "src/hv_websocket/websocket_client_test.cpp"},
+    {"hv_websocket_server", "src/hv_websocket/websocket_server_test.cpp"},
 }
-local implot_incs = {
-    "src/plot/common",
-    "src/plot/implot",
-    "src/plot/common/Fonts",
-}
-local implot_pkgs = {"imgui", "glad", "nativefiledialog-extended", "cxxopts"}
-
-local function add_implot(extra_file, extra_inc)
-    for _, f in ipairs(implot_files) do add_files(f) end
-    for _, d in ipairs(implot_incs) do add_includedirs(d) end
-    for _, p in ipairs(implot_pkgs) do add_packages(p) end
-    if extra_file then add_files(extra_file) end
-    if extra_inc then add_includedirs(extra_inc) end
+for _, t in ipairs(hv_targets) do
+    target(t[1])
+        set_kind("binary")
+        set_group("core")
+        add_files(t[2])
+        add_packages("libhv")
 end
+
+-- 串口：只依赖本地 include/（atomicops / readerwriterqueue / SerialPort），无外部包
+-- sudo chmod 666 /dev/ttyS0
+local serial_targets = {
+    {"async_serial2_hex",   "src/async_serial2/src/main.cpp"},
+    {"async_serial2_asiic", "src/async_serial2/src/main_ascii.cpp"},
+}
+for _, t in ipairs(serial_targets) do
+    target(t[1])
+        set_kind("binary")
+        set_group("core")
+        add_files(t[2], "src/async_serial2/src/SerialPort.cpp")
+        add_includedirs("src/async_serial2/include")
+end
+
+-- ============================================================
+-- ImPlot 系列 —— 组 "plot"（依赖 GL/GLFW，需系统图形库）
+-- 公共源码在 plot_common 静态库中，这里只编译各自的 main_*.cpp
+-- ============================================================
 
 -- 2d plot: static / dynamic / csv
 target("implot_dynamic")
     set_kind("binary")
+    set_group("plot")
     add_files("src/plot/main_implot_dynamic.cpp")
-    add_implot()
+    add_deps("plot_common")
 
 target("implot_static")
     set_kind("binary")
+    set_group("plot")
     add_files("src/plot/main_implot_static.cpp")
-    add_implot()
+    add_deps("plot_common")
 
 target("implot_csv")
     set_kind("binary")
+    set_group("plot")
     add_files("src/plot/main_implot_csv.cpp")
-    add_implot()
+    add_deps("plot_common")
+    add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
 
 -- 3d plot
 target("implot3d")
     set_kind("binary")
+    set_group("plot")
     add_files("src/plot/main_implot3d.cpp")
-    add_implot("src/plot/implot3d/*.cpp", "src/plot/implot3d")
+    add_deps("plot_common")
 
 target("implot3d_csv")
     set_kind("binary")
+    set_group("plot")
     add_files("src/plot/main_implot3d_csv.cpp")
-    add_implot("src/plot/implot3d/*.cpp", "src/plot/implot3d")
-
-target("base64")
-set_kind("binary")
-add_files("src/base64/base64.cpp")
+    add_deps("plot_common")
+    add_packages("xtensor", "xtensor-blas", "xtl", "xsimd")
